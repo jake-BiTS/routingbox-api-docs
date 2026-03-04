@@ -1,0 +1,428 @@
+openapi: 3.0.0
+info:
+  title: RoutingBox API
+  description: |
+    Provides access to RoutingBox Trip and Passenger data. If you would like to learn more about RoutingBox please visit our [website](https://www.routingbox.com).
+
+    If you would like to utilize the API for your transportation company, or on behalf of a transportation company, please send an email to [apihelp@intelligentbits.com](mailto:apihelp@intelligentbits.com).
+  version: 1.0.0
+  contact:
+    email: apihelp@intelligentbits.com
+  license:
+    name: Commercial License
+    url: https://www.routingbox.com/license
+
+servers:
+  - url: https://api.intelligentbits.com/routingbox/api
+    description: Production server
+
+security:
+  - BearerAuth: []
+
+paths:
+  /Authenticate:
+    post:
+      operationId: authenticate
+      summary: Authenticate
+      description: Validates your credentials and returns an authentication token. This token is used by all other methods to prove your identity.
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AuthRequest'
+            example:
+              companyCode: "ABC1"
+              apiKey: "00000000-0000-0000-0000-000000000000"
+              loginName: "testlogin"
+              password: "password"
+      responses:
+        '200':
+          description: Authentication response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+              examples:
+                success:
+                  summary: Successful authentication
+                  value:
+                    ErrorMessage: null
+                    AuthToken: "xxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXX"
+                    RefreshToken: "xxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXX"
+                failure:
+                  summary: Authentication failed
+                  value:
+                    ErrorMessage: "Authentication failed."
+                    AuthToken: null
+                    RefreshToken: null
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /RefreshAuthentication:
+    post:
+      operationId: refreshAuthentication
+      summary: Refresh Authentication
+      description: Retrieves an updated authentication token in order to access the other web methods. The refresh token must be issued recently (last ~30 minutes), and the original refresh token it was derived from can't have been issued more than a day ago.
+      tags:
+        - Authentication
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - refreshToken
+              properties:
+                refreshToken:
+                  type: string
+                  description: The token to refresh
+                  example: "xxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXX"
+      responses:
+        '200':
+          description: Refresh authentication response
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Invalid refresh token
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /GetAccount:
+    post:
+      operationId: getAccount
+      summary: Get Account
+      description: Get a single account by account ID.
+      tags:
+        - Accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - authToken
+                - accountID
+              properties:
+                authToken:
+                  type: string
+                  description: The authentication token received from Authenticate
+                  example: "xxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXX"
+                accountID:
+                  type: integer
+                  description: The ID of the account record to retrieve
+                  example: 1234
+      responses:
+        '200':
+          description: Account details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ErrorMessage:
+                    type: string
+                    nullable: true
+                  Result:
+                    $ref: '#/components/schemas/Account'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /GetAccounts:
+    post:
+      operationId: getAccounts
+      summary: Get Accounts
+      description: Get all accounts associated with a company.
+      tags:
+        - Accounts
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - authToken
+              properties:
+                authToken:
+                  type: string
+                  description: The authentication token received from Authenticate
+                  example: "xxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXXxxxxXXXX"
+      responses:
+        '200':
+          description: List of accounts
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ErrorMessage:
+                    type: string
+                    nullable: true
+                  RecordCount:
+                    type: integer
+                    description: Number of accounts returned
+                  Result:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Account'
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /FindAddress:
+    post:
+      operationId: findAddress
+      summary: Find Address
+      description: Search for addresses using geocoding services.
+      tags:
+        - Addresses
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - authToken
+                - addressString
+              properties:
+                authToken:
+                  type: string
+                  description: The authentication token received from Authenticate
+                addressString:
+                  type: string
+                  description: The address to search for
+                  example: "123 Main St, Boston, MA"
+      responses:
+        '200':
+          description: Address search results
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  ErrorMessage:
+                    type: string
+                    nullable: true
+                  Result:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        Address:
+                          type: string
+                        Latitude:
+                          type: number
+                          format: double
+                        Longitude:
+                          type: number
+                          format: double
+                        Confidence:
+                          type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      description: Authentication token from /Authenticate endpoint
+
+  schemas:
+    AuthRequest:
+      type: object
+      required:
+        - companyCode
+        - apiKey
+        - loginName
+        - password
+      properties:
+        companyCode:
+          type: string
+          description: The RoutingBox company code of the company authenticating as
+          example: "ABC1"
+        apiKey:
+          type: string
+          description: The api key provided to you
+          example: "00000000-0000-0000-0000-000000000000"
+        loginName:
+          type: string
+          description: The user's login name
+          example: "testlogin"
+        password:
+          type: string
+          description: The user's password
+          example: "password"
+
+    AuthResponse:
+      type: object
+      properties:
+        ErrorMessage:
+          type: string
+          nullable: true
+          description: Error message if authentication failed
+        AuthToken:
+          type: string
+          nullable: true
+          description: Authentication token for subsequent requests
+        RefreshToken:
+          type: string
+          nullable: true
+          description: Token for refreshing authentication
+
+    Account:
+      type: object
+      properties:
+        AccountID:
+          type: integer
+          example: 1234
+        AddressCity:
+          type: string
+          example: "Winterfell"
+        AddressPostalCode:
+          type: string
+          example: "11111"
+        AddressRegion:
+          type: string
+          example: "NY"
+        AddressStreet:
+          type: string
+          example: "42 Stark Dr"
+        AddressUnit:
+          type: string
+          example: "Tower"
+        BillCancelleds:
+          type: boolean
+          description: Indicates whether or not the system should include Cancelled Trips when billing this account
+          example: false
+        BillNoShows:
+          type: boolean
+          description: Indicates whether or not the system should include NoShow Trips when billing this account
+          example: false
+        Class:
+          type: string
+          description: "The classification of the account, ex: Medicaid, HMO, Self-pay"
+          example: "Medicaid"
+        CompanyCode:
+          type: string
+          description: "The identifier of the company the record belongs to. 'Shared' if it is a shared record"
+          example: "A1B2"
+        ContactFirstName:
+          type: string
+          example: "JON"
+        ContactLastName:
+          type: string
+          example: "S"
+        CreditHold:
+          type: boolean
+          description: "Indicates whether the Account is on credit hold. When on credit hold, new trips cannot be scheduled under this Account"
+          example: false
+        CreditHoldReason:
+          type: string
+          nullable: true
+          example: null
+        Email:
+          type: string
+          format: email
+          example: "jon@winterfell.com"
+        IsSelfPayAccount:
+          type: boolean
+          description: "Indicates whether this Account is a Client paying for their services out of pocket"
+          example: false
+        LastInvoiceNum:
+          type: string
+          description: "The number of the last invoice billed to this Account"
+          example: ""
+        Name:
+          type: string
+          example: "Winterfell Medicaid"
+        Phone1:
+          type: string
+          example: "(555) 555-5555"
+        Phone2:
+          type: string
+          example: "(555) 444-4444"
+        PhoneFax:
+          type: string
+          example: "(555) 333-3333"
+        Status:
+          type: string
+          enum: ["Active", "Inactive"]
+          example: "Active"
+
+    ErrorResponse:
+      type: object
+      properties:
+        ErrorMessage:
+          type: string
+          description: Description of the error
+          example: "Invalid request"
+
+tags:
+  - name: Authentication
+    description: Authentication and token management operations
+  - name: Accounts  
+    description: Account management operations
+  - name: Addresses
+    description: Address and geocoding operations
+  - name: Assignments
+    description: Assignment and trip management operations
+  - name: Tracking
+    description: Real-time tracking operations
